@@ -1,0 +1,17 @@
+[project]
+name = "fppc700download"
+version = "0.1.0"
+description = "Download Form 700 documents from the California FPPC"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = ["click>=8.3.1", "progress>=1.6.1", "requests>=2.32.5"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["fppc700download"]
+
+[project.scripts]
+fppc700-download = "fppc700download.cli:search_and_download_documents"

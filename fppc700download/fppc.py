@@ -1,0 +1,101 @@
+import json
+import requests
+from urllib.parse import quote
+
+
+def make_pdf_file_name(filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year):
+    return "%s_%s_%s_%s_%s_%s.pdf" % (
+        filer_last_name,
+        filer_first_name,
+        filing_year,
+        quote(filer_agency.replace(' Court', '')),
+        filer_position,
+        filing_type
+    )
+
+
+def download_document(filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year, document_index_id, output_directory, ignore_existing_files):
+    cookie_key = 'ASP.NET_SessionId'
+    url = 'https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf'
+    payload = {
+        "formInfo": {
+            "LastName": filer_last_name,
+            "FirstName": filer_first_name,
+            "Agency": filer_agency,
+            "Position": filer_position,
+            "FilingYear": filing_year,
+            "FilingType": filing_type,
+        },
+        "indexID": document_index_id
+    }
+
+    file_url_response = requests.post(url, headers={"content-type": "application/json"}, data=json.dumps
+                                      (payload))
+    file_url_response_json = file_url_response.json()
+    document_url = file_url_response_json['PDFDownloadUrl']
+    session_id_cookie = file_url_response.cookies[cookie_key]
+    jar = requests.cookies.RequestsCookieJar()
+    jar.set(cookie_key, session_id_cookie)
+
+    file_response = requests.get(document_url, cookies=jar)
+
+    file_name = make_pdf_file_name(
+        filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year)
+    file_path = "%s/%s" % (output_directory.rstrip('/'),
+                           file_name)
+
+    with open(file_path, 'wb') as file:
+        for chunk in file_response.iter_content(chunk_size=16*1024):
+            file.write(chunk)
+
+    file.close()
+
+    return document_url
+
+
+def search_for_documents(filer_first_name, filer_last_name, filing_year, filer_position, currently_held_positions_only, amendments_only):
+    url = 'https://form700search.fppc.ca.gov/Home/SearchDocuments'
+    payload = {
+        "queryGenerationInfo": None,
+        "searchFieldQueryInfos": [],
+        "showOnlyHeldPositions": currently_held_positions_only
+    }
+
+    if filer_position != "":
+        payload['searchFieldQueryInfos'].append(
+            {"queryField": "FilerPosition", "filterValue": filer_position},
+        )
+
+    if filer_first_name != "":
+        payload['searchFieldQueryInfos'].append({
+            "queryField":
+            "FilerFirstName",
+            "queryType": "Start With",
+            "filterValue": filer_first_name
+        })
+
+    if filer_last_name != "":
+        payload['searchFieldQueryInfos'].append({
+            "queryField":
+            "FilerLastName",
+            "queryType": "Start With",
+            "filterValue": filer_last_name
+        })
+
+    payload['searchFieldQueryInfos'].append(
+        {"queryField": "FilingType", "filterValue": []})
+
+    if filing_year != "":
+        payload['searchFieldQueryInfos'].append(
+            {"queryField": "FilingYear", "filterValue": filing_year})
+
+    if amendments_only:
+        payload['searchFieldQueryInfos'].append(
+            {"queryField": "Amendment", "filterValue": "true"}
+        )
+
+    r = requests.post(url, data=json.dumps(payload))
+    replaced_text = r.text.replace('\\"', '"').replace(
+        '"{', '{').replace('}"', '}')
+    documents = json.loads(replaced_text)
+    return documents
