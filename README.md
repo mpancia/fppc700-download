@@ -1,4 +1,4 @@
-# fppc700-download - Download Form 700 documents from the California FPPC
+# fppc700-download
 
 A CLI tool to download [Form 700](https://www.fppc.ca.gov/Form700.html) PDF reports from the [California Fair Political Practices Commission database](https://form700search.fppc.ca.gov).
 
