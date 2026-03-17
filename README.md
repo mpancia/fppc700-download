@@ -2,6 +2,8 @@
 
 A CLI tool to download [Form 700](https://www.fppc.ca.gov/Form700.html) PDF reports from the [California Fair Political Practices Commission database](https://form700search.fppc.ca.gov).
 
+**Note:** This tool is currently a prototype and may not be further developed.
+
 ```sh
 Usage: fppc700-download [OPTIONS]
 
