@@ -7,7 +7,7 @@ from .fppc import (search_for_documents,
 @click.command()
 @click.option('--filer-first-name', default="", help="First name starts with search query")
 @click.option('--filer-last-name', default="", help="Last name starts with search query")
-@click.option('--filer-position', default="", help="Filer's position such as \"Governor\" or \"Assembly Member\" or \"State Senate\"")
+@click.option('--filer-position', default="", help="Filer's position such as \"Governor\" or \"Assembly Member\" or \"Senator\"")
 @click.option('--filing-year', default="", help="Year for data in report")
 @click.option('--output-directory', default=".", help="Path to destination directory of PDF files, default is .")
 @click.option('--amendments-only', is_flag=True, help="Only search for Amendment filings")
