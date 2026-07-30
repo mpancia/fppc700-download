@@ -50,6 +50,10 @@ We made this tool because we needed it! And we're sharing it publicly in case ot
 
 We've gone through and extracted data from the Form 700 documents filed by the entire legislator the past few years (for filings regarding [2022](https://calmatters.org/politics/2023/05/california-legislature-trips-bills/), [2023](https://calmatters.org/politics/2024/06/california-legislator-stock-investment/), [2024](https://calmatters.org/digital-democracy/2025/09/california-legislature-sponsored-trips-israel/), [2025](https://calmatters.org/politics/2026/03/california-lawmakers-free-gifts-trips/)) in a relatively time-consuming process. However, starting in 2025 [AB1170](https://calmatters.digitaldemocracy.org/bills/ca_202320240ab1170) required legislators to submit their reports electronicly which means that all the documents have exactly the same layout.
 
+## Development
+
+Run the test suite with `uv run pytest`.
+
 ## Please let us know if you use this tool!
 
 If you end up using this tool, please get in touch and share your use case with us by sending an email to jeremia@calmatters.org.

@@ -15,3 +15,8 @@ packages = ["fppc700download"]
 
 [project.scripts]
 fppc700-download = "fppc700download.cli:search_and_download_documents"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+]
