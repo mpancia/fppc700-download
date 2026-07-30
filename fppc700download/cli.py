@@ -13,9 +13,16 @@ from .fppc import (search_for_documents,
 @click.option('--amendments-only', is_flag=True, help="Only search for Amendment filings")
 @click.option('--currently-held-positions-only',is_flag=True, help="Limit to reports by filers with a current position")
 @click.option('--ignore-existing-files', is_flag=True, help="Only download files that don't exist in output directory")
-def search_and_download_documents(filer_first_name, filer_last_name, filer_position, filing_year, output_directory, amendments_only, ignore_existing_files, currently_held_positions_only):
-    found_documents = search_for_documents(
-        filer_first_name, filer_last_name, filing_year, filer_position, currently_held_positions_only, amendments_only)
+def search_and_download_documents(filer_first_name,
+                                  filer_last_name,
+                                  filer_position,
+                                  filing_year,
+                                  output_directory,
+                                  amendments_only,
+                                  ignore_existing_files,
+                                  currently_held_positions_only):
+
+    found_documents = search_for_documents(filer_first_name, filer_last_name, filing_year, filer_position, currently_held_positions_only, amendments_only)
     documents = found_documents['documents']
     documents_count = found_documents['total']
 
@@ -30,10 +37,12 @@ def search_and_download_documents(filer_first_name, filer_last_name, filer_posit
 
     bar = Bar('Processing and downloading', max=len(documents))
     for document in documents:
-        document_filer_last_name, document_filer_first_name = document[
-            'filer']['lastName'], document['filer']['firstName']
-        document_filer_agency, document_filer_position, document_filing_type, document_filing_year = document['filingPositions'][
-            0]['agency'], document['filingPositions'][0]['position'], document['filingPositions'][0]['filingType'], document['filingPositions'][0]['filingYear']
+        document_filer_last_name = document['filer']['lastName']
+        document_filer_first_name = document['filer']['firstName']
+        document_filer_agency = document['filingPositions'][0]['agency']
+        document_filer_position = document['filingPositions'][0]['position']
+        document_filing_type = document['filingPositions'][0]['filingType']
+        document_filing_year = document['filingPositions'][0]['filingYear']
         document_index = document['indexID']
 
         # "Retired Judge" gets returned with "Judge", filter it out
@@ -41,15 +50,20 @@ def search_and_download_documents(filer_first_name, filer_last_name, filer_posit
             bar.next()
             continue
 
-        expected_file_name = make_pdf_file_name(
-            document_filer_last_name, document_filer_first_name, document_filer_agency, document_filer_position, document_filing_type, document_filing_year)
+        expected_file_name = make_pdf_file_name(document_filer_last_name,
+                                                document_filer_first_name,
+                                                document_filer_agency,
+                                                document_filer_position,
+                                                document_filing_type,
+                                                document_filing_year)
 
         if ignore_existing_files and expected_file_name in existing_files:
             bar.next()
             continue
 
         download_document(document_filer_last_name, document_filer_first_name,
-                          document_filer_agency, document_filer_position, document_filing_type, document_filing_year, document_index, output_directory, ignore_existing_files)
+                          document_filer_agency, document_filer_position,
+                          document_filing_type, document_filing_year, document_index, output_directory, expected_file_name)
 
         bar.next()
     bar.finish()

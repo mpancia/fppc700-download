@@ -4,17 +4,25 @@ from urllib.parse import quote
 
 
 def make_pdf_file_name(filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year):
-    return "%s_%s_%s_%s_%s_%s.pdf" % (
-        filer_last_name,
-        filer_first_name,
+    fname = "%s_%s_%s_%s_%s_%s.pdf" % (
+        filer_last_name.strip(),
+        filer_first_name.strip(),
         filing_year,
-        quote(filer_agency.replace(' Court', '')),
-        filer_position,
-        filing_type
+        quote(filer_agency.replace(' Court', '')).strip(),
+        filer_position.strip(),
+        filing_type.strip()
     )
+    # filter out all non-alphanumeric characters, such as '/', '+', '%' and the like.
+    fname = fname.replace('%20', '_').replace(' ', '_')
+    while not fname[0].isalnum():
+        fname = fname[1:]
+    while not fname[-1].isalnum():
+        fname = fname[:-1]
+    fname = ''.join([c for c in fname if c.isalnum() or c in ['_', '.']])
+    return fname
 
 
-def download_document(filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year, document_index_id, output_directory, ignore_existing_files):
+def download_document(filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year, document_index_id, output_directory, file_name):
     cookie_key = 'ASP.NET_SessionId'
     url = 'https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf'
     payload = {
@@ -29,8 +37,7 @@ def download_document(filer_last_name, filer_first_name, filer_agency, filer_pos
         "indexID": document_index_id
     }
 
-    file_url_response = requests.post(url, headers={"content-type": "application/json"}, data=json.dumps
-                                      (payload))
+    file_url_response = requests.post(url, headers={"content-type": "application/json"}, data=json.dumps(payload))
     file_url_response_json = file_url_response.json()
     document_url = file_url_response_json['PDFDownloadUrl']
     session_id_cookie = file_url_response.cookies[cookie_key]
@@ -39,10 +46,7 @@ def download_document(filer_last_name, filer_first_name, filer_agency, filer_pos
 
     file_response = requests.get(document_url, cookies=jar)
 
-    file_name = make_pdf_file_name(
-        filer_last_name, filer_first_name, filer_agency, filer_position, filing_type, filing_year)
-    file_path = "%s/%s" % (output_directory.rstrip('/'),
-                           file_name)
+    file_path = "%s/%s" % (output_directory.rstrip('/'), file_name)
 
     with open(file_path, 'wb') as file:
         for chunk in file_response.iter_content(chunk_size=16*1024):
@@ -95,7 +99,6 @@ def search_for_documents(filer_first_name, filer_last_name, filing_year, filer_p
         )
 
     r = requests.post(url, data=json.dumps(payload))
-    replaced_text = r.text.replace('\\"', '"').replace(
-        '"{', '{').replace('}"', '}')
+    replaced_text = r.text.replace('\\"', '"').replace('"{', '{').replace('}"', '}')
     documents = json.loads(replaced_text)
     return documents
