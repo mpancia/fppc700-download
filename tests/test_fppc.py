@@ -1,4 +1,4 @@
-from fppc700download.fppc import _make_search_payload
+from fppc700download.fppc import _make_download_payload, _make_search_payload
 
 FILER_LAST_NAME = "LAST"
 FILER_FIRST_NAME = "FIRST"
@@ -6,6 +6,31 @@ FILER_AGENCY = "AGENCY"
 FILER_POSITION = "POSITION"
 FILING_TYPE = "TYPE"
 FILING_YEAR = "YEAR"
+
+
+def test_make_download_payload():
+    _EXPECTED = {
+        "formInfo": {
+            "LastName": "LAST",
+            "FirstName": "FIRST",
+            "Agency": "AGENCY",
+            "Position": "POSITION",
+            "FilingYear": "YEAR",
+            "FilingType": "TYPE",
+        },
+        "indexID": "FAKE-ID",
+    }
+    DOCUMENT_INDEX_ID = "FAKE-ID"
+    actual = _make_download_payload(
+        FILER_LAST_NAME,
+        FILER_FIRST_NAME,
+        FILER_AGENCY,
+        FILER_POSITION,
+        FILING_YEAR,
+        FILING_TYPE,
+        DOCUMENT_INDEX_ID,
+    )
+    assert actual == _EXPECTED
 
 
 def test_make_search_payload():

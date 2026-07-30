@@ -2,6 +2,29 @@ import json
 import requests
 
 
+def _make_download_payload(
+    filer_last_name,
+    filer_first_name,
+    filer_agency,
+    filer_position,
+    filing_year,
+    filing_type,
+    document_index_id,
+):
+    payload = {
+        "formInfo": {
+            "LastName": filer_last_name,
+            "FirstName": filer_first_name,
+            "Agency": filer_agency,
+            "Position": filer_position,
+            "FilingYear": filing_year,
+            "FilingType": filing_type,
+        },
+        "indexID": document_index_id,
+    }
+    return payload
+
+
 def download_document(
     filer_last_name,
     filer_first_name,
@@ -15,17 +38,15 @@ def download_document(
 ):
     cookie_key = "ASP.NET_SessionId"
     url = "https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf"
-    payload = {
-        "formInfo": {
-            "LastName": filer_last_name,
-            "FirstName": filer_first_name,
-            "Agency": filer_agency,
-            "Position": filer_position,
-            "FilingYear": filing_year,
-            "FilingType": filing_type,
-        },
-        "indexID": document_index_id,
-    }
+    payload = _make_download_payload(
+        filer_last_name,
+        filer_first_name,
+        filer_agency,
+        filer_position,
+        filing_year,
+        filing_type,
+        document_index_id,
+    )
 
     file_url_response = requests.post(
         url, headers={"content-type": "application/json"}, data=json.dumps(payload)
