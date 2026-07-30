@@ -52,7 +52,7 @@ We've gone through and extracted data from the Form 700 documents filed by the e
 
 ## Development
 
-Run the test suite with `uv run pytest`.
+Run the test suite with `uv run pytest`. Format all of the files with `uv run ruff format`.
 
 ## Please let us know if you use this tool!
 
