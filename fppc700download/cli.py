@@ -1,69 +1,114 @@
 from os import listdir
 import click
 from progress.bar import Bar
-from .fppc import (search_for_documents,
-                        download_document, make_pdf_file_name)
+from .fppc import search_for_documents, download_document
+from .format import format_pdf_file_name
+
 
 @click.command()
-@click.option('--filer-first-name', default="", help="First name starts with search query")
-@click.option('--filer-last-name', default="", help="Last name starts with search query")
-@click.option('--filer-position', default="", help="Filer's position such as \"Governor\" or \"Assembly Member\" or \"Senator\"")
-@click.option('--filing-year', default="", help="Year for data in report")
-@click.option('--output-directory', default=".", help="Path to destination directory of PDF files, default is .")
-@click.option('--amendments-only', is_flag=True, help="Only search for Amendment filings")
-@click.option('--currently-held-positions-only',is_flag=True, help="Limit to reports by filers with a current position")
-@click.option('--ignore-existing-files', is_flag=True, help="Only download files that don't exist in output directory")
-def search_and_download_documents(filer_first_name,
-                                  filer_last_name,
-                                  filer_position,
-                                  filing_year,
-                                  output_directory,
-                                  amendments_only,
-                                  ignore_existing_files,
-                                  currently_held_positions_only):
+@click.option(
+    "--filer-first-name", default="", help="First name starts with search query"
+)
+@click.option(
+    "--filer-last-name", default="", help="Last name starts with search query"
+)
+@click.option(
+    "--filer-position",
+    default="",
+    help='Filer\'s position such as "Governor" or "Assembly Member" or "Senator"',
+)
+@click.option("--filing-year", default="", help="Year for data in report")
+@click.option(
+    "--output-directory",
+    default=".",
+    help="Path to destination directory of PDF files, default is .",
+)
+@click.option(
+    "--amendments-only", is_flag=True, help="Only search for Amendment filings"
+)
+@click.option(
+    "--currently-held-positions-only",
+    is_flag=True,
+    help="Limit to reports by filers with a current position",
+)
+@click.option(
+    "--ignore-existing-files",
+    is_flag=True,
+    help="Only download files that don't exist in output directory",
+)
+def search_and_download_documents(
+    filer_first_name,
+    filer_last_name,
+    filer_position,
+    filing_year,
+    output_directory,
+    amendments_only,
+    ignore_existing_files,
+    currently_held_positions_only,
+):
 
-    found_documents = search_for_documents(filer_first_name, filer_last_name, filing_year, filer_position, currently_held_positions_only, amendments_only)
-    documents = found_documents['documents']
-    documents_count = found_documents['total']
+    found_documents = search_for_documents(
+        filer_first_name,
+        filer_last_name,
+        filing_year,
+        filer_position,
+        currently_held_positions_only,
+        amendments_only,
+    )
+    documents = found_documents["documents"]
+    documents_count = found_documents["total"]
 
     if documents_count == 0:
         print("No documents found")
         return
 
-    if (documents_count > 1000):
-        print("WARNING: %s documents found but FPPC returns a maximum of 1,000 rows; try further limiting your search" % documents_count)
+    if documents_count > 1000:
+        print(
+            "WARNING: %s documents found but FPPC returns a maximum of 1,000 rows; try further limiting your search"
+            % documents_count
+        )
 
     existing_files = listdir(output_directory)
 
-    bar = Bar('Processing and downloading', max=len(documents))
+    bar = Bar("Processing and downloading", max=len(documents))
     for document in documents:
-        document_filer_last_name = document['filer']['lastName']
-        document_filer_first_name = document['filer']['firstName']
-        document_filer_agency = document['filingPositions'][0]['agency']
-        document_filer_position = document['filingPositions'][0]['position']
-        document_filing_type = document['filingPositions'][0]['filingType']
-        document_filing_year = document['filingPositions'][0]['filingYear']
-        document_index = document['indexID']
+        document_filer_last_name = document["filer"]["lastName"]
+        document_filer_first_name = document["filer"]["firstName"]
+        document_filer_agency = document["filingPositions"][0]["agency"]
+        document_filer_position = document["filingPositions"][0]["position"]
+        document_filing_type = document["filingPositions"][0]["filingType"]
+        document_filing_year = document["filingPositions"][0]["filingYear"]
+        document_index = document["indexID"]
 
         # "Retired Judge" gets returned with "Judge", filter it out
-        if filer_position == 'Judge' and document_filer_position == "Retired Judge":
+        if filer_position == "Judge" and document_filer_position == "Retired Judge":
             bar.next()
             continue
 
-        expected_file_name = make_pdf_file_name(document_filer_last_name,
-                                                document_filer_first_name,
-                                                document_filer_agency,
-                                                document_filer_position,
-                                                document_filing_type,
-                                                document_filing_year)
+        expected_file_name = format_pdf_file_name(
+            document_filer_last_name,
+            document_filer_first_name,
+            document_filer_agency,
+            document_filer_position,
+            document_filing_type,
+            document_filing_year,
+        )
 
         if ignore_existing_files and expected_file_name in existing_files:
             bar.next()
             continue
 
-        download_document(document_filer_last_name, document_filer_first_name,
-                          document_filer_agency, document_filer_position,
-                          document_filing_type, document_filing_year, document_index, output_directory, expected_file_name)
+        download_document(
+            document_filer_last_name,
+            document_filer_first_name,
+            document_filer_agency,
+            document_filer_position,
+            document_filing_type,
+            document_filing_year,
+            document_index,
+            output_directory,
+            expected_file_name,
+        )
 
         bar.next()
     bar.finish()
