@@ -10,8 +10,9 @@ Usage: fppc700-download [OPTIONS]
 Options:
   --filer-first-name TEXT         First name starts with search query
   --filer-last-name TEXT          Last name starts with search query
+  --filer-agency TEXT             Agency to search
   --filer-position TEXT           Position of filer, default is "Assembly Member"
-  --filing-year INTEGER           Year for data in report
+  --filing-year TEXT              Year for data in report
   --output-directory TEXT         Path to destination directory of PDF files, default is .
   --amendments-only               Only search for Amendment filings
   --currently-held-positions-only Limit to reports by filers with a current position
@@ -23,13 +24,19 @@ Options:
 The following command would download all of the 2025 FPPC Form 700 reports for judges who have a last name that starts with "K" into the current directory:
 
 ```sh
-fppc700-download --filing-position Judge --filer-last-name K --filing-year 2025 --output-directory .
+fppc700-download --filer-position Judge --filer-last-name K --filing-year 2025 --output-directory .
 ```
 
 The following command would download all of the 2025 FPPC Form 700 reports for Assembly Members who are currently holding any position into the current directory, skipping any that have already been downloaded:
 
 ```sh
-fppc700-download --filing-position "Assembly Member" --filing-year 2025 --output-directory . --currently-held-positions-only --ignore-existing-files
+fppc700-download --filer-position "Assembly Member" --filing-year 2025 --output-directory . --currently-held-positions-only --ignore-existing-files
+```
+
+The following command would download all of the 2025 FPPC Form 700 reports for San Francisco Supervisors into the current directory:
+
+```sh
+fppc700-download --filer-agency "City and County of San Francisco" --filer-position Supervisor --filing-year 2025 --output-directory .
 ```
 
 ## Installation
