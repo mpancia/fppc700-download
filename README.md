@@ -59,7 +59,7 @@ We've gone through and extracted data from the Form 700 documents filed by the e
 
 ## Development
 
-Run the test suite with `uv run pytest`. Lint with `uv run ruff check` and format with `uv run ruff format`.
+Run the test suite with `uv run pytest`. Lint with `uv run ruff check`, type-check with `uv run mypy`, and format with `uv run ruff format`.
 
 ## Please let us know if you use this tool!
 

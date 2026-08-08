@@ -1,18 +1,38 @@
+from __future__ import annotations
+
 import json
+from pathlib import Path
+from typing import Any
 
 import requests
 
+from .models import FilingType, SearchResult
+
+SEARCH_URL = "https://form700search.fppc.ca.gov/Home/SearchDocuments"
+DOWNLOAD_URL = "https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf"
+
+_session = requests.Session()
+
+
+def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    response = _session.post(
+        url, headers={"content-type": "application/json"}, data=json.dumps(payload)
+    )
+    response.raise_for_status()
+    result: dict[str, Any] = json.loads(json.loads(response.text))
+    return result
+
 
 def _make_download_payload(
-    filer_last_name,
-    filer_first_name,
-    filer_agency,
-    filer_position,
-    filing_year,
-    filing_type,
-    document_index_id,
-):
-    payload = {
+    filer_last_name: str,
+    filer_first_name: str,
+    filer_agency: str,
+    filer_position: str,
+    filing_year: int,
+    filing_type: FilingType,
+    document_index_id: str,
+) -> dict[str, Any]:
+    return {
         "formInfo": {
             "LastName": filer_last_name,
             "FirstName": filer_first_name,
@@ -23,22 +43,19 @@ def _make_download_payload(
         },
         "indexID": document_index_id,
     }
-    return payload
 
 
 def download_document(
-    filer_last_name,
-    filer_first_name,
-    filer_agency,
-    filer_position,
-    filing_type,
-    filing_year,
-    document_index_id,
-    output_directory,
-    file_name,
-):
-    cookie_key = "ASP.NET_SessionId"
-    url = "https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf"
+    filer_last_name: str,
+    filer_first_name: str,
+    filer_agency: str,
+    filer_position: str,
+    filing_type: FilingType,
+    filing_year: int,
+    document_index_id: str,
+    output_directory: Path,
+    file_name: str,
+) -> str:
     payload = _make_download_payload(
         filer_last_name,
         filer_first_name,
@@ -49,40 +66,32 @@ def download_document(
         document_index_id,
     )
 
-    file_url_response = requests.post(
-        url, headers={"content-type": "application/json"}, data=json.dumps(payload)
+    file_url_response = _session.post(
+        DOWNLOAD_URL,
+        headers={"content-type": "application/json"},
+        data=json.dumps(payload),
     )
     file_url_response.raise_for_status()
-    file_url_response_json = file_url_response.json()
-    document_url = file_url_response_json["PDFDownloadUrl"]
-    session_id_cookie = file_url_response.cookies[cookie_key]
-    jar = requests.cookies.RequestsCookieJar()
-    jar.set(cookie_key, session_id_cookie)
+    document_url: str = file_url_response.json()["PDFDownloadUrl"]
 
-    file_response = requests.get(document_url, cookies=jar)
+    file_response = _session.get(document_url)
     file_response.raise_for_status()
 
-    file_path = f"{output_directory.rstrip('/')}/{file_name}"
-
-    with open(file_path, "wb") as file:
-        for chunk in file_response.iter_content(chunk_size=16 * 1024):
-            file.write(chunk)
-
-    file.close()
+    (output_directory / file_name).write_bytes(file_response.content)
 
     return document_url
 
 
 def _make_search_payload(
-    filer_first_name,
-    filer_last_name,
-    filer_agency,
-    filing_year,
-    filer_position,
-    currently_held_positions_only,
-    amendments_only,
-):
-    payload = {
+    filer_first_name: str,
+    filer_last_name: str,
+    filer_agency: str,
+    filing_year: str,
+    filer_position: str,
+    currently_held_positions_only: bool,
+    amendments_only: bool,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "queryGenerationInfo": None,
         "searchFieldQueryInfos": [],
         "showOnlyHeldPositions": currently_held_positions_only,
@@ -136,16 +145,14 @@ def _make_search_payload(
 
 
 def search_for_documents(
-    filer_first_name,
-    filer_last_name,
-    filer_agency,
-    filing_year,
-    filer_position,
-    currently_held_positions_only,
-    amendments_only,
-):
-    url = "https://form700search.fppc.ca.gov/Home/SearchDocuments"
-
+    filer_first_name: str,
+    filer_last_name: str,
+    filer_agency: str,
+    filing_year: str,
+    filer_position: str,
+    currently_held_positions_only: bool,
+    amendments_only: bool,
+) -> SearchResult:
     payload = _make_search_payload(
         filer_first_name,
         filer_last_name,
@@ -155,7 +162,4 @@ def search_for_documents(
         currently_held_positions_only,
         amendments_only,
     )
-    r = requests.post(url, data=json.dumps(payload))
-    r.raise_for_status()
-    documents = json.loads(json.loads(r.text))
-    return documents
+    return SearchResult.from_api(_post_json(SEARCH_URL, payload))

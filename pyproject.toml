@@ -18,9 +18,19 @@ fppc700-download = "fppc700download.cli:search_and_download_documents"
 
 [dependency-groups]
 dev = [
+    "mypy>=2.3.0",
     "pytest>=9.1.0",
     "ruff>=0.16.0",
+    "types-requests>=2.33.0.20260712",
 ]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP"]
+
+[tool.mypy]
+strict = true
+files = ["fppc700download"]
+
+[[tool.mypy.overrides]]
+module = "progress.*"
+ignore_missing_imports = true
