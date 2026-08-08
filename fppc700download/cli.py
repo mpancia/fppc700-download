@@ -6,9 +6,22 @@ from progress.bar import Bar
 
 from .format import format_pdf_file_name
 from .fppc import download_document, search_for_documents
+from .models import Document, FilingPosition
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
+
+def _select_filing_position(
+    document: Document, filer_agency: str, filer_position: str
+) -> FilingPosition | None:
+    for position in document.filing_positions:
+        if filer_agency != "" and position.agency != filer_agency:
+            continue
+        if filer_position != "" and position.position != filer_position:
+            continue
+        return position
+    return None
 
 
 @click.command()
@@ -80,9 +93,9 @@ def search_and_download_documents(
 
     bar = Bar("Processing and downloading", max=len(result.documents))
     for document in result.documents:
-        position = document.filing_positions[0]
+        position = _select_filing_position(document, filer_agency, filer_position)
 
-        if filer_position != "" and position.position != filer_position:
+        if position is None:
             bar.next()
             continue
 
