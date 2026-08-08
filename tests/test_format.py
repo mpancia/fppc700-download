@@ -20,12 +20,15 @@ def _make(
     first_name=FILER_FIRST_NAME,
     agency=FILER_AGENCY,
     filed_date=FILED_DATE,
+    is_amendment=False,
 ):
     document = Document(
         index_id="FAKE-ID",
         filer=Filer(last_name=last_name, first_name=first_name),
         filing_info=FilingInfo(
-            filed_date=filed_date, is_amendment=False, no_reportable_interests=False
+            filed_date=filed_date,
+            is_amendment=is_amendment,
+            no_reportable_interests=False,
         ),
         filing_positions=[],
     )
@@ -76,5 +79,13 @@ def test_format_pdf_file_name_remove_city_slash_town():
 
 def test_format_pdf_file_name_disambiguates_amendment():
     original = format_pdf_file_name(*_make(filed_date="2026-03-03T12:30:23"))
-    amendment = format_pdf_file_name(*_make())
+    amendment = format_pdf_file_name(
+        *_make(filed_date="2026-04-21T16:36:19", is_amendment=True)
+    )
     assert original != amendment
+
+
+def test_format_pdf_file_name_labels_amendment():
+    _EXPECTED = """LAST_FIRST_YEAR_AGENCY_POSITION_Annual_Amendment_20260421.pdf"""
+    actual = format_pdf_file_name(*_make(is_amendment=True))
+    assert actual == _EXPECTED

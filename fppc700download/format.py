@@ -12,9 +12,10 @@ def format_pdf_file_name(document: Document, filing_position: FilingPosition) ->
     position = filing_position.position.strip()
     filing_type = filing_position.filing_type.value.strip()
     filed_date = document.filing_info.filed_date[:10]
+    amendment = "Amendment_" if document.filing_info.is_amendment else ""
     fname = (
         f"{last}_{first}_{filing_position.filing_year}_{agency}_{position}"
-        f"_{filing_type}_{filed_date}.pdf"
+        f"_{filing_type}_{amendment}{filed_date}.pdf"
     )
     # filter out all non-alphanumeric characters, such as '/', '+', '%' and the like.
     fname = fname.replace("%20", "_").replace(" ", "_")
