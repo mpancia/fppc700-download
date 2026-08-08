@@ -1,4 +1,5 @@
 import json
+
 import requests
 
 
@@ -59,7 +60,7 @@ def download_document(
 
     file_response = requests.get(document_url, cookies=jar)
 
-    file_path = "%s/%s" % (output_directory.rstrip("/"), file_name)
+    file_path = f"{output_directory.rstrip('/')}/{file_name}"
 
     with open(file_path, "wb") as file:
         for chunk in file_response.iter_content(chunk_size=16 * 1024):

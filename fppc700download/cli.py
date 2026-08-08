@@ -1,8 +1,10 @@
 from os import listdir
+
 import click
 from progress.bar import Bar
-from .fppc import search_for_documents, download_document
+
 from .format import format_pdf_file_name
+from .fppc import download_document, search_for_documents
 
 
 @click.command()
@@ -67,8 +69,7 @@ def search_and_download_documents(
 
     if documents_count > 1000:
         print(
-            "WARNING: %s documents found but FPPC returns a maximum of 1,000 rows; try further limiting your search"
-            % documents_count
+            f"WARNING: {documents_count} documents found but FPPC returns a maximum of 1,000 rows; try further limiting your search"
         )
 
     existing_files = listdir(output_directory)
