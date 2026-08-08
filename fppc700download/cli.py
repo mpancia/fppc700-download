@@ -12,6 +12,7 @@ from .format import format_pdf_file_name
 @click.option(
     "--filer-last-name", default="", help="Last name starts with search query"
 )
+@click.option("--filer-agency", default="", help="Agency to search")
 @click.option(
     "--filer-position",
     default="",
@@ -39,6 +40,7 @@ from .format import format_pdf_file_name
 def search_and_download_documents(
     filer_first_name,
     filer_last_name,
+    filer_agency,
     filer_position,
     filing_year,
     output_directory,
@@ -50,6 +52,7 @@ def search_and_download_documents(
     found_documents = search_for_documents(
         filer_first_name,
         filer_last_name,
+        filer_agency,
         filing_year,
         filer_position,
         currently_held_positions_only,

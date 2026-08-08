@@ -73,6 +73,7 @@ def download_document(
 def _make_search_payload(
     filer_first_name,
     filer_last_name,
+    filer_agency,
     filing_year,
     filer_position,
     currently_held_positions_only,
@@ -107,6 +108,14 @@ def _make_search_payload(
             }
         )
 
+    if filer_agency != "":
+        payload["searchFieldQueryInfos"].append(
+            {
+                "queryField": "FilerAgency",
+                "filterValue": filer_agency,
+            }
+        )
+
     payload["searchFieldQueryInfos"].append(
         {"queryField": "FilingType", "filterValue": []}
     )
@@ -126,6 +135,7 @@ def _make_search_payload(
 def search_for_documents(
     filer_first_name,
     filer_last_name,
+    filer_agency,
     filing_year,
     filer_position,
     currently_held_positions_only,
@@ -136,6 +146,7 @@ def search_for_documents(
     payload = _make_search_payload(
         filer_first_name,
         filer_last_name,
+        filer_agency,
         filing_year,
         filer_position,
         currently_held_positions_only,

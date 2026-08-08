@@ -48,13 +48,20 @@ def test_make_search_payload():
                 "queryType": "Start With",
                 "filterValue": "LAST",
             },
+            {"queryField": "FilerAgency", "filterValue": "AGENCY"},
             {"queryField": "FilingType", "filterValue": []},
             {"queryField": "FilingYear", "filterValue": "YEAR"},
         ],
         "showOnlyHeldPositions": False,
     }
     actual = _make_search_payload(
-        FILER_FIRST_NAME, FILER_LAST_NAME, FILING_YEAR, FILER_POSITION, False, False
+        FILER_FIRST_NAME,
+        FILER_LAST_NAME,
+        FILER_AGENCY,
+        FILING_YEAR,
+        FILER_POSITION,
+        False,
+        False,
     )
     assert actual == _EXPECTED
 
@@ -74,13 +81,20 @@ def test_make_search_payload_currently_held_positions():
                 "queryType": "Start With",
                 "filterValue": "LAST",
             },
+            {"queryField": "FilerAgency", "filterValue": "AGENCY"},
             {"queryField": "FilingType", "filterValue": []},
             {"queryField": "FilingYear", "filterValue": "YEAR"},
         ],
         "showOnlyHeldPositions": True,
     }
     actual = _make_search_payload(
-        FILER_FIRST_NAME, FILER_LAST_NAME, FILING_YEAR, FILER_POSITION, True, False
+        FILER_FIRST_NAME,
+        FILER_LAST_NAME,
+        FILER_AGENCY,
+        FILING_YEAR,
+        FILER_POSITION,
+        True,
+        False,
     )
     assert actual == _EXPECTED
 
@@ -100,6 +114,7 @@ def test_make_search_payload_amendments_only():
                 "queryType": "Start With",
                 "filterValue": "LAST",
             },
+            {"queryField": "FilerAgency", "filterValue": "AGENCY"},
             {"queryField": "FilingType", "filterValue": []},
             {"queryField": "FilingYear", "filterValue": "YEAR"},
             {"queryField": "Amendment", "filterValue": "true"},
@@ -107,6 +122,12 @@ def test_make_search_payload_amendments_only():
         "showOnlyHeldPositions": False,
     }
     actual = _make_search_payload(
-        FILER_FIRST_NAME, FILER_LAST_NAME, FILING_YEAR, FILER_POSITION, False, True
+        FILER_FIRST_NAME,
+        FILER_LAST_NAME,
+        FILER_AGENCY,
+        FILING_YEAR,
+        FILER_POSITION,
+        False,
+        True,
     )
     assert actual == _EXPECTED
