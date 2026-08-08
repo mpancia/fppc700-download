@@ -86,8 +86,7 @@ def search_and_download_documents(
         document_filed_date = document["filingInfo"]["filedDate"]
         document_index = document["indexID"]
 
-        # "Retired Judge" gets returned with "Judge", filter it out
-        if filer_position == "Judge" and document_filer_position == "Retired Judge":
+        if filer_position != "" and document_filer_position != filer_position:
             bar.next()
             continue
 
