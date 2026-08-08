@@ -8,13 +8,15 @@ def format_pdf_file_name(
     filer_position,
     filing_type,
     filing_year,
+    filed_date,
 ):
     last = filer_last_name.strip()
     first = filer_first_name.strip()
     agency = quote(filer_agency.replace(" Court", "")).strip()
     position = filer_position.strip()
     filing_type = filing_type.strip()
-    fname = f"{last}_{first}_{filing_year}_{agency}_{position}_{filing_type}.pdf"
+    filed_date = filed_date[:10]
+    fname = f"{last}_{first}_{filing_year}_{agency}_{position}_{filing_type}_{filed_date}.pdf"
     # filter out all non-alphanumeric characters, such as '/', '+', '%' and the like.
     fname = fname.replace("%20", "_").replace(" ", "_")
     while not fname[0].isalnum():

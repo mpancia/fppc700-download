@@ -82,6 +82,7 @@ def search_and_download_documents(
         document_filer_position = document["filingPositions"][0]["position"]
         document_filing_type = document["filingPositions"][0]["filingType"]
         document_filing_year = document["filingPositions"][0]["filingYear"]
+        document_filed_date = document["filingInfo"]["filedDate"]
         document_index = document["indexID"]
 
         # "Retired Judge" gets returned with "Judge", filter it out
@@ -96,6 +97,7 @@ def search_and_download_documents(
             document_filer_position,
             document_filing_type,
             document_filing_year,
+            document_filed_date,
         )
 
         if ignore_existing_files and expected_file_name in existing_files:
