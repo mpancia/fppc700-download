@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, makedirs
 
 import click
 from progress.bar import Bar
@@ -72,6 +72,7 @@ def search_and_download_documents(
             f"WARNING: {documents_count} documents found but FPPC returns a maximum of 1,000 rows; try further limiting your search"
         )
 
+    makedirs(output_directory, exist_ok=True)
     existing_files = listdir(output_directory)
 
     bar = Bar("Processing and downloading", max=len(documents))

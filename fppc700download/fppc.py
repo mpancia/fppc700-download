@@ -52,6 +52,7 @@ def download_document(
     file_url_response = requests.post(
         url, headers={"content-type": "application/json"}, data=json.dumps(payload)
     )
+    file_url_response.raise_for_status()
     file_url_response_json = file_url_response.json()
     document_url = file_url_response_json["PDFDownloadUrl"]
     session_id_cookie = file_url_response.cookies[cookie_key]
@@ -59,6 +60,7 @@ def download_document(
     jar.set(cookie_key, session_id_cookie)
 
     file_response = requests.get(document_url, cookies=jar)
+    file_response.raise_for_status()
 
     file_path = f"{output_directory.rstrip('/')}/{file_name}"
 
@@ -154,5 +156,6 @@ def search_for_documents(
         amendments_only,
     )
     r = requests.post(url, data=json.dumps(payload))
+    r.raise_for_status()
     documents = json.loads(json.loads(r.text))
     return documents
