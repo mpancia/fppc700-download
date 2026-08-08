@@ -1,4 +1,12 @@
-from fppc700download.fppc import _make_download_payload, _make_search_payload
+import json
+
+import requests
+
+from fppc700download.fppc import (
+    _make_download_payload,
+    _make_search_payload,
+    search_for_documents,
+)
 
 FILER_LAST_NAME = "LAST"
 FILER_FIRST_NAME = "FIRST"
@@ -131,3 +139,27 @@ def test_make_search_payload_amendments_only():
         True,
     )
     assert actual == _EXPECTED
+
+
+def test_search_for_documents_parses_nested_quotes(monkeypatch):
+    body = json.dumps(
+        {"total": 1, "documents": [{"filer": {"lastName": 'Weird"}Name'}}]}
+    )
+
+    class FakeResponse:
+        text = json.dumps(body)
+
+    monkeypatch.setattr(requests, "post", lambda *args, **kwargs: FakeResponse())
+
+    result = search_for_documents(
+        FILER_FIRST_NAME,
+        FILER_LAST_NAME,
+        FILER_AGENCY,
+        FILING_YEAR,
+        FILER_POSITION,
+        False,
+        False,
+    )
+
+    assert result["total"] == 1
+    assert result["documents"][0]["filer"]["lastName"] == 'Weird"}Name'

@@ -154,6 +154,5 @@ def search_for_documents(
         amendments_only,
     )
     r = requests.post(url, data=json.dumps(payload))
-    replaced_text = r.text.replace('\\"', '"').replace('"{', "{").replace('}"', "}")
-    documents = json.loads(replaced_text)
+    documents = json.loads(json.loads(r.text))
     return documents
