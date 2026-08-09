@@ -4,14 +4,19 @@ version = "0.1.0"
 description = "Download Form 700 documents from the California FPPC"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = ["click>=8.3.1", "progress>=1.6.1", "requests>=2.32.5"]
+dependencies = [
+    "click>=8.3.1",
+    "progress>=1.6.1",
+    "requests>=2.32.5",
+    "textual>=8.2.8",
+]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["fppc700download"]
+packages = ["fppc700download", "fppc700download.tui"]
 
 [project.scripts]
 fppc700-download = "fppc700download.cli:cli"
@@ -20,12 +25,17 @@ fppc700-download = "fppc700download.cli:cli"
 dev = [
     "mypy>=2.3.0",
     "pytest>=9.1.0",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.16.0",
+    "textual-dev>=1.8.0",
     "types-requests>=2.33.0.20260712",
 ]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.mypy]
 strict = true

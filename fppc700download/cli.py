@@ -8,6 +8,7 @@ from progress.bar import Bar
 from .format import format_pdf_file_name
 from .fppc import download_document, search_for_documents
 from .models import Document, FilingPosition
+from .tui.app import run as run_tui
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -138,3 +139,8 @@ def search(
 
         bar.next()
     bar.finish()
+
+
+@cli.command()
+def tui() -> None:
+    run_tui()
