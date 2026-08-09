@@ -250,3 +250,59 @@ async def test_search_filters_out_non_matching_positions(monkeypatch):
         table = app.query_one(DataTable)
         assert table.row_count == 1
         assert list(app._rows.values())[0][0].index_id == "MATCH-ID"
+
+
+async def test_clicking_header_sorts_and_toggles_direction(monkeypatch):
+    results = {
+        "total": 3,
+        "documents": [
+            {
+                "filer": {"lastName": name, "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "POSITION",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": f"ID-{name}",
+            }
+            for name in ["Charlie", "Alpha", "Bravo"]
+        ],
+    }
+    _mock_search(monkeypatch, results)
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        table = app.query_one(DataTable)
+        assert [table.get_row_at(i)[0] for i in range(3)] == [
+            "Charlie",
+            "Alpha",
+            "Bravo",
+        ]
+
+        await pilot.click(DataTable, offset=(2, 0))
+        await pilot.pause()
+        assert [table.get_row_at(i)[0] for i in range(3)] == [
+            "Alpha",
+            "Bravo",
+            "Charlie",
+        ]
+
+        await pilot.click(DataTable, offset=(2, 0))
+        await pilot.pause()
+        assert [table.get_row_at(i)[0] for i in range(3)] == [
+            "Charlie",
+            "Bravo",
+            "Alpha",
+        ]

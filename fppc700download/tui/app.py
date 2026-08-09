@@ -29,14 +29,14 @@ from ..models import (
 )
 
 RESULTS_COLUMNS = (
-    "Last",
-    "First",
-    "Agency",
-    "Position",
-    "Type",
-    "Year",
-    "Filed",
-    "Amendment",
+    ("Last", "last"),
+    ("First", "first"),
+    ("Agency", "agency"),
+    ("Position", "position"),
+    ("Type", "type"),
+    ("Year", "year"),
+    ("Filed", "filed"),
+    ("Amendment", "amendment"),
 )
 
 
@@ -66,6 +66,8 @@ class FppcApp(App[None]):
     def __init__(self) -> None:
         super().__init__()
         self._rows: dict[str, tuple[Document, FilingPosition]] = {}
+        self._sort_column: str | None = None
+        self._sort_reverse: bool = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -105,6 +107,17 @@ class FppcApp(App[None]):
 
     def on_mount(self) -> None:
         self.query_one(DataTable).add_columns(*RESULTS_COLUMNS)
+
+    @on(DataTable.HeaderSelected)
+    def handle_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        column_key = event.column_key.value
+        if column_key is None:
+            return
+        self._sort_reverse = (
+            not self._sort_reverse if column_key == self._sort_column else False
+        )
+        self._sort_column = column_key
+        self.query_one(DataTable).sort(event.column_key, reverse=self._sort_reverse)
 
     def get_system_commands(self, screen: Screen[object]) -> Iterable[SystemCommand]:
         yield from super().get_system_commands(screen)
