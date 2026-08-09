@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from io import BytesIO
 from pathlib import Path
 
 from textual import on, work
@@ -21,7 +22,7 @@ from textual.worker import Worker, WorkerState
 from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
 from ..format import format_pdf_file_name
-from ..fppc import autocomplete, download_document, search_for_documents
+from ..fppc import autocomplete, fetch_document_pdf, search_for_documents
 from ..models import (
     Document,
     FilingPosition,
@@ -355,7 +356,7 @@ class FppcApp(App[None]):
                 continue
 
             try:
-                download_document(
+                _, content = fetch_document_pdf(
                     document.filer.last_name,
                     document.filer.first_name,
                     position.agency,
@@ -363,13 +364,19 @@ class FppcApp(App[None]):
                     position.filing_type,
                     position.filing_year,
                     document.index_id,
-                    output_directory,
-                    file_name,
                 )
             except Exception as error:
                 self.post_message(DownloadFileError(label, str(error)))
-            else:
-                self.post_message(DownloadProgress(completed, total, label))
+                continue
+
+            self.call_from_thread(
+                self.deliver_binary,
+                BytesIO(content),
+                save_directory=output_directory,
+                save_filename=file_name,
+                mime_type="application/pdf",
+            )
+            self.post_message(DownloadProgress(completed, total, label))
 
     @on(DownloadProgress)
     def handle_download_progress(self, event: DownloadProgress) -> None:

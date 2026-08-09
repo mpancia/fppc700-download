@@ -67,7 +67,7 @@ def _make_download_payload(
     }
 
 
-def download_document(
+def fetch_document_pdf(
     filer_last_name: str,
     filer_first_name: str,
     filer_agency: str,
@@ -75,9 +75,7 @@ def download_document(
     filing_type: FilingType,
     filing_year: int,
     document_index_id: str,
-    output_directory: Path,
-    file_name: str,
-) -> str:
+) -> tuple[str, bytes]:
     payload = _make_download_payload(
         filer_last_name,
         filer_first_name,
@@ -99,8 +97,30 @@ def download_document(
     file_response = _session.get(document_url)
     file_response.raise_for_status()
 
-    (output_directory / file_name).write_bytes(file_response.content)
+    return document_url, file_response.content
 
+
+def download_document(
+    filer_last_name: str,
+    filer_first_name: str,
+    filer_agency: str,
+    filer_position: str,
+    filing_type: FilingType,
+    filing_year: int,
+    document_index_id: str,
+    output_directory: Path,
+    file_name: str,
+) -> str:
+    document_url, content = fetch_document_pdf(
+        filer_last_name,
+        filer_first_name,
+        filer_agency,
+        filer_position,
+        filing_type,
+        filing_year,
+        document_index_id,
+    )
+    (output_directory / file_name).write_bytes(content)
     return document_url
 
 

@@ -98,7 +98,9 @@ async def test_download_all_downloads_every_row(tmp_path, monkeypatch):
     _mock_search(monkeypatch)
     downloaded = []
     monkeypatch.setattr(
-        tui_app, "download_document", lambda *args: downloaded.append(args[6])
+        tui_app,
+        "fetch_document_pdf",
+        lambda *args: (downloaded.append(args[6]), ("url", b"%PDF-fake"))[1],
     )
 
     app = FppcApp()
@@ -133,7 +135,9 @@ async def test_ctrl_d_binding_triggers_download_all(tmp_path, monkeypatch):
     _mock_search(monkeypatch)
     downloaded = []
     monkeypatch.setattr(
-        tui_app, "download_document", lambda *args: downloaded.append(args[6])
+        tui_app,
+        "fetch_document_pdf",
+        lambda *args: (downloaded.append(args[6]), ("url", b"%PDF-fake"))[1],
     )
 
     app = FppcApp()
@@ -442,7 +446,9 @@ async def test_download_only_downloads_selected_rows(tmp_path, monkeypatch):
     _mock_search(monkeypatch, results)
     downloaded = []
     monkeypatch.setattr(
-        tui_app, "download_document", lambda *args: downloaded.append(args[6])
+        tui_app,
+        "fetch_document_pdf",
+        lambda *args: (downloaded.append(args[6]), ("url", b"%PDF-fake"))[1],
     )
 
     app = FppcApp()
