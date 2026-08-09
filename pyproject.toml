@@ -14,7 +14,7 @@ build-backend = "setuptools.build_meta"
 packages = ["fppc700download"]
 
 [project.scripts]
-fppc700-download = "fppc700download.cli:search_and_download_documents"
+fppc700-download = "fppc700download.cli:cli"
 
 [dependency-groups]
 dev = [

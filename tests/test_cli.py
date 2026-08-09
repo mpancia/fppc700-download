@@ -58,7 +58,7 @@ def test_creates_output_directory_if_missing(tmp_path, monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.search_and_download_documents,
+        cli.search,
         ["--output-directory", str(output_directory)],
     )
 
@@ -87,7 +87,7 @@ def test_filters_out_documents_with_a_different_position(tmp_path, monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.search_and_download_documents,
+        cli.search,
         ["--filer-position", "Judge", "--output-directory", str(tmp_path)],
     )
 
@@ -117,9 +117,26 @@ def test_matches_position_anywhere_in_filing_positions(tmp_path, monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.search_and_download_documents,
+        cli.search,
         ["--filer-position", "Supervisor", "--output-directory", str(tmp_path)],
     )
 
     assert result.exit_code == 0
     assert downloaded == ["Supervisor"]
+
+
+def test_cli_defaults_to_search_without_a_subcommand(tmp_path, monkeypatch, caplog):
+    caplog.set_level("INFO")
+    result_data = SearchResult.from_api({"total": 0, "documents": []})
+    monkeypatch.setattr(
+        cli, "search_for_documents", lambda *args, **kwargs: result_data
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.cli,
+        ["--filer-last-name", "K", "--output-directory", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "No documents found" in caplog.text

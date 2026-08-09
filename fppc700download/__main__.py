@@ -1,4 +1,4 @@
-from fppc700download.cli import search_and_download_documents
+from fppc700download.cli import cli
 
 if __name__ == "__main__":
-    search_and_download_documents()
+    cli()

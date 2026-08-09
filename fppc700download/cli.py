@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import click
 from progress.bar import Bar
@@ -24,7 +25,25 @@ def _select_filing_position(
     return None
 
 
-@click.command()
+class _DefaultGroup(click.Group):
+    def __init__(self, *args: Any, default: str, **kwargs: Any) -> None:
+        self.default_command = default
+        super().__init__(*args, **kwargs)
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        if not args or (
+            args[0] not in self.commands and args[0] not in ("--help", "-h")
+        ):
+            args = [self.default_command, *args]
+        return super().parse_args(ctx, args)
+
+
+@click.group(cls=_DefaultGroup, default="search")
+def cli() -> None:
+    pass
+
+
+@cli.command()
 @click.option(
     "--filer-first-name", default="", help="First name starts with search query"
 )
@@ -57,7 +76,7 @@ def _select_filing_position(
     is_flag=True,
     help="Only download files that don't exist in output directory",
 )
-def search_and_download_documents(
+def search(
     filer_first_name: str,
     filer_last_name: str,
     filer_agency: str,
