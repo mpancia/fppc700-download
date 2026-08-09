@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -7,7 +6,6 @@ from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.screen import Screen
-from textual.suggester import Suggester
 from textual.widgets import (
     Button,
     Checkbox,
@@ -20,6 +18,7 @@ from textual.widgets import (
     RichLog,
 )
 from textual.worker import Worker, WorkerState
+from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
 from ..format import format_pdf_file_name
 from ..fppc import autocomplete, download_document, search_for_documents
@@ -31,27 +30,44 @@ from ..models import (
 )
 
 
-class FppcFieldSuggester(Suggester):
-    def __init__(self, field: str) -> None:
-        super().__init__(case_sensitive=False)
+class FppcAutoComplete(AutoComplete):
+    def __init__(self, target: Input, field: str) -> None:
+        super().__init__(target, candidates=None)
         self._field = field
+        self._cache: dict[str, list[str]] = {}
+        self._pending: set[str] = set()
 
-    async def get_suggestion(self, value: str) -> str | None:
-        if not value:
-            return None
-        loop = asyncio.get_running_loop()
+    def get_candidates(self, target_state: TargetState) -> list[DropdownItem]:
+        text = target_state.text
+        if not text:
+            return []
+
+        best_key = ""
+        for cached_key in self._cache:
+            if text.startswith(cached_key) and len(cached_key) > len(best_key):
+                best_key = cached_key
+
+        if text not in self._cache and text not in self._pending:
+            self._pending.add(text)
+            self.fetch_candidates(text)
+
+        return [
+            DropdownItem(value)
+            for value in self._cache.get(best_key, [])
+            if value.casefold().startswith(text.casefold())
+        ]
+
+    @work(thread=True)
+    def fetch_candidates(self, prefix: str) -> None:
         try:
-            matches = await loop.run_in_executor(None, autocomplete, self._field, value)
+            results = autocomplete(self._field, prefix)
         except Exception:
-            return None
-        for match in matches:
-            if match.casefold().startswith(value.casefold()):
-                return match
-        return None
+            results = []
+        self.app.call_from_thread(self._store_results, prefix, results)
 
-
-_AGENCY_SUGGESTER = FppcFieldSuggester("FilerAgency")
-_POSITION_SUGGESTER = FppcFieldSuggester("FilerPosition")
+    def _store_results(self, prefix: str, results: list[str]) -> None:
+        self._cache[prefix] = results
+        self._pending.discard(prefix)
 
 
 RESULTS_COLUMNS = (
@@ -106,18 +122,16 @@ class FppcApp(App[None]):
                 yield Input(placeholder="Last name starts with", id="filer-last-name")
             with Vertical(classes="field"):
                 yield Label("Agency")
-                yield Input(
-                    placeholder="Agency to search",
-                    id="filer-agency",
-                    suggester=_AGENCY_SUGGESTER,
-                )
+                agency_input = Input(placeholder="Agency to search", id="filer-agency")
+                yield agency_input
+                yield FppcAutoComplete(agency_input, "FilerAgency")
             with Vertical(classes="field"):
                 yield Label("Position")
-                yield Input(
-                    placeholder='e.g. "Assembly Member"',
-                    id="filer-position",
-                    suggester=_POSITION_SUGGESTER,
+                position_input = Input(
+                    placeholder='e.g. "Assembly Member"', id="filer-position"
                 )
+                yield position_input
+                yield FppcAutoComplete(position_input, "FilerPosition")
             with Vertical(classes="field"):
                 yield Label("Filing year")
                 yield Input(placeholder="e.g. 2025", id="filing-year")

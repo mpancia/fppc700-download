@@ -8,6 +8,7 @@ from textual.widgets import (
     ProgressBar,
     RichLog,
 )
+from textual_autocomplete import TargetState
 
 import fppc700download.tui.app as tui_app
 from fppc700download.models import SearchResult
@@ -308,38 +309,79 @@ async def test_clicking_header_sorts_and_toggles_direction(monkeypatch):
         ]
 
 
-async def test_suggester_returns_none_for_empty_value():
-    suggester = tui_app.FppcFieldSuggester("FilerAgency")
-    assert await suggester.get_suggestion("") is None
+async def test_autocomplete_returns_empty_for_blank_text():
+    app = FppcApp()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        widget = next(
+            w for w in app.query(tui_app.FppcAutoComplete) if w._field == "FilerAgency"
+        )
+        assert widget.get_candidates(TargetState(text="", cursor_position=0)) == []
 
 
-async def test_suggester_returns_matching_prefix(monkeypatch):
+async def test_autocomplete_fetches_then_serves_from_cache(monkeypatch):
     monkeypatch.setattr(
         tui_app,
         "autocomplete",
         lambda field, prefix: ["City and County of San Francisco", "City of Alameda"],
     )
-    suggester = tui_app.FppcFieldSuggester("FilerAgency")
 
-    assert await suggester.get_suggestion("City") == "City and County of San Francisco"
+    app = FppcApp()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        widget = next(
+            w for w in app.query(tui_app.FppcAutoComplete) if w._field == "FilerAgency"
+        )
+        state = TargetState(text="City", cursor_position=4)
+
+        assert widget.get_candidates(state) == []
+
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert [item.value for item in widget.get_candidates(state)] == [
+            "City and County of San Francisco",
+            "City of Alameda",
+        ]
 
 
-async def test_suggester_ignores_non_prefix_matches(monkeypatch):
+async def test_autocomplete_narrows_from_cached_superset(monkeypatch):
     monkeypatch.setattr(
         tui_app,
         "autocomplete",
-        lambda field, prefix: ["Alameda County Superior Court"],
+        lambda field, prefix: ["City and County of San Francisco", "City of Alameda"],
     )
-    suggester = tui_app.FppcFieldSuggester("FilerPosition")
 
-    assert await suggester.get_suggestion("s") is None
+    app = FppcApp()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        widget = next(
+            w for w in app.query(tui_app.FppcAutoComplete) if w._field == "FilerAgency"
+        )
+        widget.get_candidates(TargetState(text="City", cursor_position=4))
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        narrowed = widget.get_candidates(TargetState(text="City a", cursor_position=6))
+        assert [item.value for item in narrowed] == ["City and County of San Francisco"]
 
 
-async def test_suggester_returns_none_on_error(monkeypatch):
+async def test_autocomplete_handles_fetch_errors(monkeypatch):
     def raise_error(field, prefix):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(tui_app, "autocomplete", raise_error)
-    suggester = tui_app.FppcFieldSuggester("FilerAgency")
 
-    assert await suggester.get_suggestion("City") is None
+    app = FppcApp()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        widget = next(
+            w for w in app.query(tui_app.FppcAutoComplete) if w._field == "FilerAgency"
+        )
+        state = TargetState(text="City", cursor_position=4)
+
+        widget.get_candidates(state)
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert widget.get_candidates(state) == []
