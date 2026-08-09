@@ -1,4 +1,9 @@
-from fppc700download.models import Document, FilingType, SearchResult
+from fppc700download.models import (
+    Document,
+    FilingType,
+    SearchResult,
+    matching_filing_positions,
+)
 
 DOCUMENT = {
     "filingInfo": {
@@ -63,3 +68,35 @@ def test_search_result_from_api():
     assert result.total == 1
     assert len(result.documents) == 1
     assert result.documents[0].index_id == DOCUMENT["indexID"]
+
+
+def test_matching_filing_positions_filters_by_position():
+    document = Document.from_api(DOCUMENT)
+
+    matches = matching_filing_positions(document, "", "Supervisor")
+
+    assert [m.agency for m in matches] == ["City and County of San Francisco"]
+
+
+def test_matching_filing_positions_filters_by_agency():
+    document = Document.from_api(DOCUMENT)
+
+    matches = matching_filing_positions(document, "Transbay Joint Powers Authority", "")
+
+    assert [m.position for m in matches] == ["Members of the Board of Directors"]
+
+
+def test_matching_filing_positions_no_filter_returns_all():
+    document = Document.from_api(DOCUMENT)
+
+    matches = matching_filing_positions(document, "", "")
+
+    assert len(matches) == 2
+
+
+def test_matching_filing_positions_no_match_returns_empty():
+    document = Document.from_api(DOCUMENT)
+
+    matches = matching_filing_positions(document, "", "Treasurer")
+
+    assert matches == []

@@ -91,3 +91,14 @@ class SearchResult:
             total=data["total"],
             documents=[Document.from_api(d) for d in data["documents"]],
         )
+
+
+def matching_filing_positions(
+    document: Document, filer_agency: str, filer_position: str
+) -> list[FilingPosition]:
+    return [
+        position
+        for position in document.filing_positions
+        if (filer_agency == "" or position.agency == filer_agency)
+        and (filer_position == "" or position.position == filer_position)
+    ]

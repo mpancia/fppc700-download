@@ -7,23 +7,11 @@ from progress.bar import Bar
 
 from .format import format_pdf_file_name
 from .fppc import download_document, search_for_documents
-from .models import Document, FilingPosition
+from .models import matching_filing_positions
 from .tui.app import run as run_tui
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
-
-
-def _select_filing_position(
-    document: Document, filer_agency: str, filer_position: str
-) -> FilingPosition | None:
-    for position in document.filing_positions:
-        if filer_agency != "" and position.agency != filer_agency:
-            continue
-        if filer_position != "" and position.position != filer_position:
-            continue
-        return position
-    return None
 
 
 class _DefaultGroup(click.Group):
@@ -113,7 +101,8 @@ def search(
 
     bar = Bar("Processing and downloading", max=len(result.documents))
     for document in result.documents:
-        position = _select_filing_position(document, filer_agency, filer_position)
+        positions = matching_filing_positions(document, filer_agency, filer_position)
+        position = positions[0] if positions else None
 
         if position is None:
             bar.next()

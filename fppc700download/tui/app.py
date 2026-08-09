@@ -21,7 +21,12 @@ from textual.worker import Worker, WorkerState
 
 from ..format import format_pdf_file_name
 from ..fppc import download_document, search_for_documents
-from ..models import Document, FilingPosition, SearchResult
+from ..models import (
+    Document,
+    FilingPosition,
+    SearchResult,
+    matching_filing_positions,
+)
 
 RESULTS_COLUMNS = (
     "Last",
@@ -154,19 +159,28 @@ class FppcApp(App[None]):
 
         if event.state == WorkerState.SUCCESS:
             assert event.worker.result is not None
-            self._populate_results(event.worker.result)
+            self._populate_results(
+                event.worker.result,
+                self.query_one("#filer-agency", Input).value,
+                self.query_one("#filer-position", Input).value,
+            )
         elif event.state == WorkerState.ERROR:
             self.query_one("#status-message", Label).update(
                 f"Error: {event.worker.error}"
             )
 
-    def _populate_results(self, result: SearchResult) -> None:
+    def _populate_results(
+        self, result: SearchResult, filer_agency: str, filer_position: str
+    ) -> None:
         table = self.query_one(DataTable)
         table.clear()
         self._rows.clear()
 
         for document in result.documents:
-            for index, position in enumerate(document.filing_positions):
+            positions = matching_filing_positions(
+                document, filer_agency, filer_position
+            )
+            for index, position in enumerate(positions):
                 key = f"{document.index_id}:{index}"
                 self._rows[key] = (document, position)
                 table.add_row(

@@ -196,3 +196,57 @@ async def test_search_handles_duplicate_positions_within_a_document(monkeypatch)
         await pilot.pause()
 
         assert app.query_one(DataTable).row_count == 2
+
+
+async def test_search_filters_out_non_matching_positions(monkeypatch):
+    results = {
+        "total": 2,
+        "documents": [
+            {
+                "filer": {"lastName": "MATCH", "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "Supervisor",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": "MATCH-ID",
+            },
+            {
+                "filer": {"lastName": "NOMATCH", "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "Bookstore Supervisor",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": "NOMATCH-ID",
+            },
+        ],
+    }
+    _mock_search(monkeypatch, results)
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        app.query_one("#filer-position", Input).value = "Supervisor"
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        table = app.query_one(DataTable)
+        assert table.row_count == 1
+        assert list(app._rows.values())[0][0].index_id == "MATCH-ID"
