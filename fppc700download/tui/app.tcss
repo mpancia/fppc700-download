@@ -23,3 +23,24 @@
 #search-button {
     width: auto;
 }
+
+#results-table {
+    height: 12;
+    margin-top: 1;
+}
+
+#download-all-button {
+    width: auto;
+    margin-top: 1;
+}
+
+#download-progress {
+    height: auto;
+    margin-top: 1;
+}
+
+#download-log {
+    height: 10;
+    border: solid $primary;
+    margin-top: 1;
+}

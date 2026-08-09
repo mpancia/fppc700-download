@@ -39,6 +39,12 @@ The following command would download all of the 2025 FPPC Form 700 reports for S
 fppc700-download --filer-agency "City and County of San Francisco" --filer-position Supervisor --filing-year 2025 --output-directory .
 ```
 
+## TUI
+
+Run `fppc700-download tui` for an interactive terminal UI: fill in the same
+search fields, browse results in a table, and select a row (or "Download
+all") to download.
+
 ## Installation
 
 You can install the CLI tool from this Github repository using `pip` or `uv`:

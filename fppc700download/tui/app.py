@@ -1,6 +1,11 @@
+from collections.abc import Iterable
+from pathlib import Path
+
 from textual import on, work
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.message import Message
+from textual.screen import Screen
 from textual.widgets import (
     Button,
     Checkbox,
@@ -9,10 +14,13 @@ from textual.widgets import (
     Header,
     Input,
     Label,
+    ProgressBar,
+    RichLog,
 )
 from textual.worker import Worker, WorkerState
 
-from ..fppc import search_for_documents
+from ..format import format_pdf_file_name
+from ..fppc import download_document, search_for_documents
 from ..models import Document, FilingPosition, SearchResult
 
 RESULTS_COLUMNS = (
@@ -27,9 +35,28 @@ RESULTS_COLUMNS = (
 )
 
 
+class DownloadProgress(Message):
+    def __init__(self, completed: int, total: int, label: str) -> None:
+        self.completed = completed
+        self.total = total
+        self.label = label
+        super().__init__()
+
+
+class DownloadFileError(Message):
+    def __init__(self, label: str, error: str) -> None:
+        self.label = label
+        self.error = error
+        super().__init__()
+
+
 class FppcApp(App[None]):
     TITLE = "FPPC Form 700 Downloader"
     CSS_PATH = "app.tcss"
+    BINDINGS = [
+        ("ctrl+s", "search", "Search"),
+        ("ctrl+d", "download_all", "Download all"),
+    ]
 
     def __init__(self) -> None:
         super().__init__()
@@ -65,14 +92,27 @@ class FppcApp(App[None]):
                 yield Checkbox("Ignore existing files", id="ignore-existing-files")
             yield Button("Search", id="search-button", variant="primary")
             yield Label("", id="status-message")
-            yield DataTable(id="results-table")
+            yield DataTable(id="results-table", cursor_type="row")
+            yield Button("Download all", id="download-all-button")
+            yield ProgressBar(id="download-progress", show_eta=False)
+            yield RichLog(id="download-log", wrap=True)
         yield Footer()
 
     def on_mount(self) -> None:
         self.query_one(DataTable).add_columns(*RESULTS_COLUMNS)
 
+    def get_system_commands(self, screen: Screen[object]) -> Iterable[SystemCommand]:
+        yield from super().get_system_commands(screen)
+        yield SystemCommand("Search", "Run a search", self.action_search)
+        yield SystemCommand(
+            "Download all", "Download every result", self.action_download_all
+        )
+
     @on(Button.Pressed, "#search-button")
     def handle_search_pressed(self) -> None:
+        self.action_search()
+
+    def action_search(self) -> None:
         self.query_one("#search-button", Button).disabled = True
         self.query_one("#status-message", Label).update("Searching…")
         self.run_search(
@@ -144,6 +184,76 @@ class FppcApp(App[None]):
         self.query_one("#status-message", Label).update(
             f"{result.total} document(s) found"
         )
+
+    @on(DataTable.RowSelected)
+    def handle_row_selected(self, event: DataTable.RowSelected) -> None:
+        entry = self._rows.get(event.row_key.value or "")
+        if entry is not None:
+            self._start_download([entry])
+
+    @on(Button.Pressed, "#download-all-button")
+    def handle_download_all_pressed(self) -> None:
+        self.action_download_all()
+
+    def action_download_all(self) -> None:
+        self._start_download(list(self._rows.values()))
+
+    def _start_download(self, entries: list[tuple[Document, FilingPosition]]) -> None:
+        if not entries:
+            return
+        output_directory = Path(self.query_one("#output-directory", Input).value)
+        ignore_existing = self.query_one("#ignore-existing-files", Checkbox).value
+        self.query_one(ProgressBar).update(total=len(entries), progress=0)
+        self.run_downloads(entries, output_directory, ignore_existing)
+
+    @work(thread=True, exclusive=True, group="download")
+    def run_downloads(
+        self,
+        entries: list[tuple[Document, FilingPosition]],
+        output_directory: Path,
+        ignore_existing: bool,
+    ) -> None:
+        output_directory.mkdir(parents=True, exist_ok=True)
+        existing_files = {path.name for path in output_directory.iterdir()}
+        total = len(entries)
+
+        for completed, (document, position) in enumerate(entries, start=1):
+            label = f"{document.filer.last_name}, {document.filer.first_name} ({position.position})"
+            file_name = format_pdf_file_name(document, position)
+
+            if ignore_existing and file_name in existing_files:
+                self.post_message(
+                    DownloadProgress(completed, total, f"{label} — already exists")
+                )
+                continue
+
+            try:
+                download_document(
+                    document.filer.last_name,
+                    document.filer.first_name,
+                    position.agency,
+                    position.position,
+                    position.filing_type,
+                    position.filing_year,
+                    document.index_id,
+                    output_directory,
+                    file_name,
+                )
+            except Exception as error:
+                self.post_message(DownloadFileError(label, str(error)))
+            else:
+                self.post_message(DownloadProgress(completed, total, label))
+
+    @on(DownloadProgress)
+    def handle_download_progress(self, event: DownloadProgress) -> None:
+        self.query_one(ProgressBar).update(progress=event.completed)
+        self.query_one(RichLog).write(
+            f"[{event.completed}/{event.total}] {event.label}"
+        )
+
+    @on(DownloadFileError)
+    def handle_download_file_error(self, event: DownloadFileError) -> None:
+        self.query_one(RichLog).write(f"FAILED: {event.label} — {event.error}")
 
 
 def run() -> None:
