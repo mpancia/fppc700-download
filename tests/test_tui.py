@@ -342,20 +342,77 @@ async def test_space_toggles_row_selection_and_updates_button_label(monkeypatch)
         await pilot.pause()
 
         button = app.query_one("#download-all-button", Button)
+        clear_button = app.query_one("#clear-selection-button", Button)
         table = app.query_one(DataTable)
         assert button.label == "Download all"
+        assert clear_button.display is False
 
         await pilot.press("space")
         await pilot.pause()
 
         assert button.label == "Download selected (1)"
         assert table.get_row_at(0)[0] == "✓"
+        assert clear_button.display is True
 
         await pilot.press("space")
         await pilot.pause()
 
         assert button.label == "Download all"
         assert table.get_row_at(0)[0] == ""
+        assert clear_button.display is False
+
+
+async def test_clear_selection_button_deselects_all_rows(monkeypatch):
+    results = {
+        "total": 2,
+        "documents": [
+            {
+                "filer": {"lastName": name, "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "POSITION",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": f"ID-{name}",
+            }
+            for name in ["Alpha", "Bravo"]
+        ],
+    }
+    _mock_search(monkeypatch, results)
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        await pilot.press("space")
+        await pilot.press("down")
+        await pilot.press("space")
+        await pilot.pause()
+
+        clear_button = app.query_one("#clear-selection-button", Button)
+        download_button = app.query_one("#download-all-button", Button)
+        table = app.query_one(DataTable)
+        assert clear_button.display is True
+        assert download_button.label == "Download selected (2)"
+
+        await pilot.click("#clear-selection-button")
+        await pilot.pause()
+
+        assert app._selected == set()
+        assert clear_button.display is False
+        assert download_button.label == "Download all"
+        assert table.get_row_at(0)[0] == ""
+        assert table.get_row_at(1)[0] == ""
 
 
 async def test_download_only_downloads_selected_rows(tmp_path, monkeypatch):

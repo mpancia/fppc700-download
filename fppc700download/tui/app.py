@@ -152,12 +152,14 @@ class FppcApp(App[None]):
             yield Label("", id="status-message")
             yield DataTable(id="results-table", cursor_type="row")
             yield Button("Download all", id="download-all-button")
+            yield Button("Clear selection", id="clear-selection-button")
             yield ProgressBar(id="download-progress", show_eta=False)
             yield RichLog(id="download-log", wrap=True)
         yield Footer()
 
     def on_mount(self) -> None:
         self.query_one(DataTable).add_columns(*RESULTS_COLUMNS)
+        self.query_one("#clear-selection-button", Button).display = False
 
     @on(DataTable.HeaderSelected)
     def handle_header_selected(self, event: DataTable.HeaderSelected) -> None:
@@ -240,7 +242,7 @@ class FppcApp(App[None]):
         table.clear()
         self._rows.clear()
         self._selected.clear()
-        self._update_download_button_label()
+        self._update_selection_ui()
 
         for document in result.documents:
             positions = matching_filing_positions(
@@ -285,7 +287,7 @@ class FppcApp(App[None]):
         else:
             self._selected.add(row_key)
             table.update_cell(row_key, "select", "✓")
-        self._update_download_button_label()
+        self._update_selection_ui()
 
     @on(Button.Pressed, "#download-all-button")
     def handle_download_pressed(self) -> None:
@@ -297,18 +299,31 @@ class FppcApp(App[None]):
         else:
             entries = list(self._rows.values())
         self._selected.clear()
-        self._update_download_button_label()
+        self._update_selection_ui()
         self._start_download(entries)
+
+    @on(Button.Pressed, "#clear-selection-button")
+    def handle_clear_selection_pressed(self) -> None:
+        self.action_clear_selection()
+
+    def action_clear_selection(self) -> None:
+        table = self.query_one(DataTable)
+        for key in self._selected:
+            if key in self._rows:
+                table.update_cell(key, "select", "")
+        self._selected.clear()
+        self._update_selection_ui()
 
     def _download_button_label(self) -> str:
         if self._selected:
             return f"Download selected ({len(self._selected)})"
         return "Download all"
 
-    def _update_download_button_label(self) -> None:
+    def _update_selection_ui(self) -> None:
         self.query_one(
             "#download-all-button", Button
         ).label = self._download_button_label()
+        self.query_one("#clear-selection-button", Button).display = bool(self._selected)
 
     def _start_download(self, entries: list[tuple[Document, FilingPosition]]) -> None:
         if not entries:

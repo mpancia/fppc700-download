@@ -34,6 +34,11 @@
     margin-top: 1;
 }
 
+#clear-selection-button {
+    width: auto;
+    margin-top: 1;
+}
+
 #download-progress {
     height: auto;
     margin-top: 1;
