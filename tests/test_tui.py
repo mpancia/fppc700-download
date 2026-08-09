@@ -286,27 +286,125 @@ async def test_clicking_header_sorts_and_toggles_direction(monkeypatch):
         await pilot.pause()
 
         table = app.query_one(DataTable)
-        assert [table.get_row_at(i)[0] for i in range(3)] == [
+        assert [table.get_row_at(i)[1] for i in range(3)] == [
             "Charlie",
             "Alpha",
             "Bravo",
         ]
 
-        await pilot.click(DataTable, offset=(2, 0))
+        await pilot.click(DataTable, offset=(7, 0))
         await pilot.pause()
-        assert [table.get_row_at(i)[0] for i in range(3)] == [
+        assert [table.get_row_at(i)[1] for i in range(3)] == [
             "Alpha",
             "Bravo",
             "Charlie",
         ]
 
-        await pilot.click(DataTable, offset=(2, 0))
+        await pilot.click(DataTable, offset=(7, 0))
         await pilot.pause()
-        assert [table.get_row_at(i)[0] for i in range(3)] == [
+        assert [table.get_row_at(i)[1] for i in range(3)] == [
             "Charlie",
             "Bravo",
             "Alpha",
         ]
+
+
+async def test_space_toggles_row_selection_and_updates_button_label(monkeypatch):
+    results = {
+        "total": 2,
+        "documents": [
+            {
+                "filer": {"lastName": name, "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "POSITION",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": f"ID-{name}",
+            }
+            for name in ["Alpha", "Bravo"]
+        ],
+    }
+    _mock_search(monkeypatch, results)
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        button = app.query_one("#download-all-button", Button)
+        table = app.query_one(DataTable)
+        assert button.label == "Download all"
+
+        await pilot.press("space")
+        await pilot.pause()
+
+        assert button.label == "Download selected (1)"
+        assert table.get_row_at(0)[0] == "✓"
+
+        await pilot.press("space")
+        await pilot.pause()
+
+        assert button.label == "Download all"
+        assert table.get_row_at(0)[0] == ""
+
+
+async def test_download_only_downloads_selected_rows(tmp_path, monkeypatch):
+    results = {
+        "total": 2,
+        "documents": [
+            {
+                "filer": {"lastName": name, "firstName": "FIRST"},
+                "filingPositions": [
+                    {
+                        "agency": "AGENCY",
+                        "position": "POSITION",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    }
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": f"ID-{name}",
+            }
+            for name in ["Alpha", "Bravo"]
+        ],
+    }
+    _mock_search(monkeypatch, results)
+    downloaded = []
+    monkeypatch.setattr(
+        tui_app, "download_document", lambda *args: downloaded.append(args[6])
+    )
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        app.query_one("#output-directory", Input).value = str(tmp_path)
+
+        await pilot.press("space")
+        await pilot.pause()
+
+        await pilot.click("#download-all-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert downloaded == ["ID-Alpha"]
+        assert app.query_one("#download-all-button", Button).label == "Download all"
 
 
 async def test_autocomplete_returns_empty_for_blank_text():

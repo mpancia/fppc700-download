@@ -71,6 +71,7 @@ class FppcAutoComplete(AutoComplete):
 
 
 RESULTS_COLUMNS = (
+    ("Sel", "select"),
     ("Last", "last"),
     ("First", "first"),
     ("Agency", "agency"),
@@ -102,12 +103,14 @@ class FppcApp(App[None]):
     CSS_PATH = "app.tcss"
     BINDINGS = [
         ("ctrl+s", "search", "Search"),
-        ("ctrl+d", "download_all", "Download all"),
+        ("space", "toggle_selected", "Toggle selection"),
+        ("ctrl+d", "download", "Download"),
     ]
 
     def __init__(self) -> None:
         super().__init__()
         self._rows: dict[str, tuple[Document, FilingPosition]] = {}
+        self._selected: set[str] = set()
         self._sort_column: str | None = None
         self._sort_reverse: bool = False
 
@@ -171,7 +174,7 @@ class FppcApp(App[None]):
         yield from super().get_system_commands(screen)
         yield SystemCommand("Search", "Run a search", self.action_search)
         yield SystemCommand(
-            "Download all", "Download every result", self.action_download_all
+            self._download_button_label(), "Download results", self.action_download
         )
 
     @on(Button.Pressed, "#search-button")
@@ -236,6 +239,8 @@ class FppcApp(App[None]):
         table = self.query_one(DataTable)
         table.clear()
         self._rows.clear()
+        self._selected.clear()
+        self._update_download_button_label()
 
         for document in result.documents:
             positions = matching_filing_positions(
@@ -245,6 +250,7 @@ class FppcApp(App[None]):
                 key = f"{document.index_id}:{index}"
                 self._rows[key] = (document, position)
                 table.add_row(
+                    "",
                     document.filer.last_name,
                     document.filer.first_name,
                     position.agency,
@@ -266,12 +272,43 @@ class FppcApp(App[None]):
         if entry is not None:
             self._start_download([entry])
 
-    @on(Button.Pressed, "#download-all-button")
-    def handle_download_all_pressed(self) -> None:
-        self.action_download_all()
+    def action_toggle_selected(self) -> None:
+        table = self.query_one(DataTable)
+        if table.row_count == 0:
+            return
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
+        if row_key is None or row_key not in self._rows:
+            return
+        if row_key in self._selected:
+            self._selected.discard(row_key)
+            table.update_cell(row_key, "select", "")
+        else:
+            self._selected.add(row_key)
+            table.update_cell(row_key, "select", "✓")
+        self._update_download_button_label()
 
-    def action_download_all(self) -> None:
-        self._start_download(list(self._rows.values()))
+    @on(Button.Pressed, "#download-all-button")
+    def handle_download_pressed(self) -> None:
+        self.action_download()
+
+    def action_download(self) -> None:
+        if self._selected:
+            entries = [self._rows[key] for key in self._selected if key in self._rows]
+        else:
+            entries = list(self._rows.values())
+        self._selected.clear()
+        self._update_download_button_label()
+        self._start_download(entries)
+
+    def _download_button_label(self) -> str:
+        if self._selected:
+            return f"Download selected ({len(self._selected)})"
+        return "Download all"
+
+    def _update_download_button_label(self) -> None:
+        self.query_one(
+            "#download-all-button", Button
+        ).label = self._download_button_label()
 
     def _start_download(self, entries: list[tuple[Document, FilingPosition]]) -> None:
         if not entries:
