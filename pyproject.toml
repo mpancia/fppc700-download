@@ -18,6 +18,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["fppc700download", "fppc700download.tui"]
 
+[tool.setuptools.package-data]
+"fppc700download.tui" = ["*.tcss"]
+
 [project.scripts]
 fppc700-download = "fppc700download.cli:cli"
 

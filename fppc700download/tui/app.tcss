@@ -1,0 +1,25 @@
+#search-form {
+    padding: 1 2;
+}
+
+.field {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.field Label {
+    color: $text-muted;
+}
+
+#search-flags {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#search-flags Checkbox {
+    margin-right: 2;
+}
+
+#search-button {
+    width: auto;
+}
