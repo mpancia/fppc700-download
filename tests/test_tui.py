@@ -156,3 +156,43 @@ async def test_command_palette_includes_search_and_download_all():
         assert "Search" in commands
         assert "Download all" in commands
         await pilot.pause()
+
+
+async def test_search_handles_duplicate_positions_within_a_document(monkeypatch):
+    results = {
+        "total": 1,
+        "documents": [
+            {
+                "filer": {"lastName": "PESKIN", "firstName": "AARON"},
+                "filingPositions": [
+                    {
+                        "agency": "City and County of San Francisco",
+                        "position": "Supervisor",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    },
+                    {
+                        "agency": "City and County of San Francisco",
+                        "position": "Supervisor",
+                        "filingType": "Annual",
+                        "filingYear": 2025,
+                    },
+                ],
+                "filingInfo": {
+                    "filedDate": "2026-01-01T00:00:00",
+                    "isAmendment": False,
+                    "noReportableInterests": False,
+                },
+                "indexID": "FAKE-ID",
+            }
+        ],
+    }
+    _mock_search(monkeypatch, results)
+
+    app = FppcApp()
+    async with app.run_test(size=(80, 50)) as pilot:
+        await pilot.click("#search-button")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert app.query_one(DataTable).row_count == 2

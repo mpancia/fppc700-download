@@ -166,8 +166,8 @@ class FppcApp(App[None]):
         self._rows.clear()
 
         for document in result.documents:
-            for position in document.filing_positions:
-                key = f"{document.index_id}:{position.agency}:{position.position}"
+            for index, position in enumerate(document.filing_positions):
+                key = f"{document.index_id}:{index}"
                 self._rows[key] = (document, position)
                 table.add_row(
                     document.filer.last_name,
