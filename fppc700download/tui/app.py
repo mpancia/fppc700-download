@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.screen import Screen
+from textual.suggester import Suggester
 from textual.widgets import (
     Button,
     Checkbox,
@@ -20,13 +22,37 @@ from textual.widgets import (
 from textual.worker import Worker, WorkerState
 
 from ..format import format_pdf_file_name
-from ..fppc import download_document, search_for_documents
+from ..fppc import autocomplete, download_document, search_for_documents
 from ..models import (
     Document,
     FilingPosition,
     SearchResult,
     matching_filing_positions,
 )
+
+
+class FppcFieldSuggester(Suggester):
+    def __init__(self, field: str) -> None:
+        super().__init__(case_sensitive=False)
+        self._field = field
+
+    async def get_suggestion(self, value: str) -> str | None:
+        if not value:
+            return None
+        loop = asyncio.get_running_loop()
+        try:
+            matches = await loop.run_in_executor(None, autocomplete, self._field, value)
+        except Exception:
+            return None
+        for match in matches:
+            if match.casefold().startswith(value.casefold()):
+                return match
+        return None
+
+
+_AGENCY_SUGGESTER = FppcFieldSuggester("FilerAgency")
+_POSITION_SUGGESTER = FppcFieldSuggester("FilerPosition")
+
 
 RESULTS_COLUMNS = (
     ("Last", "last"),
@@ -80,10 +106,18 @@ class FppcApp(App[None]):
                 yield Input(placeholder="Last name starts with", id="filer-last-name")
             with Vertical(classes="field"):
                 yield Label("Agency")
-                yield Input(placeholder="Agency to search", id="filer-agency")
+                yield Input(
+                    placeholder="Agency to search",
+                    id="filer-agency",
+                    suggester=_AGENCY_SUGGESTER,
+                )
             with Vertical(classes="field"):
                 yield Label("Position")
-                yield Input(placeholder='e.g. "Assembly Member"', id="filer-position")
+                yield Input(
+                    placeholder='e.g. "Assembly Member"',
+                    id="filer-position",
+                    suggester=_POSITION_SUGGESTER,
+                )
             with Vertical(classes="field"):
                 yield Label("Filing year")
                 yield Input(placeholder="e.g. 2025", id="filing-year")

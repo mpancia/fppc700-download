@@ -199,3 +199,21 @@ def test_search_for_documents_raises_for_http_error(monkeypatch):
             False,
             False,
         )
+
+
+def test_autocomplete_decodes_double_encoded_list(monkeypatch):
+    body = json.dumps(
+        json.dumps(["City and County of San Francisco", "City of Alameda"])
+    )
+
+    class FakeResponse:
+        text = body
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(fppc._session, "post", lambda *args, **kwargs: FakeResponse())
+
+    result = fppc.autocomplete("FilerAgency", "City")
+
+    assert result == ["City and County of San Francisco", "City of Alameda"]

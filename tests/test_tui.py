@@ -306,3 +306,40 @@ async def test_clicking_header_sorts_and_toggles_direction(monkeypatch):
             "Bravo",
             "Alpha",
         ]
+
+
+async def test_suggester_returns_none_for_empty_value():
+    suggester = tui_app.FppcFieldSuggester("FilerAgency")
+    assert await suggester.get_suggestion("") is None
+
+
+async def test_suggester_returns_matching_prefix(monkeypatch):
+    monkeypatch.setattr(
+        tui_app,
+        "autocomplete",
+        lambda field, prefix: ["City and County of San Francisco", "City of Alameda"],
+    )
+    suggester = tui_app.FppcFieldSuggester("FilerAgency")
+
+    assert await suggester.get_suggestion("City") == "City and County of San Francisco"
+
+
+async def test_suggester_ignores_non_prefix_matches(monkeypatch):
+    monkeypatch.setattr(
+        tui_app,
+        "autocomplete",
+        lambda field, prefix: ["Alameda County Superior Court"],
+    )
+    suggester = tui_app.FppcFieldSuggester("FilerPosition")
+
+    assert await suggester.get_suggestion("s") is None
+
+
+async def test_suggester_returns_none_on_error(monkeypatch):
+    def raise_error(field, prefix):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(tui_app, "autocomplete", raise_error)
+    suggester = tui_app.FppcFieldSuggester("FilerAgency")
+
+    assert await suggester.get_suggestion("City") is None

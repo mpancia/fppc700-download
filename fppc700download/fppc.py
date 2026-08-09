@@ -14,12 +14,34 @@ DOWNLOAD_URL = "https://form700search.fppc.ca.gov/Home/GetRedactedFormPdf"
 _session = requests.Session()
 
 
-def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _post_and_decode(url: str, payload: dict[str, Any]) -> Any:
     response = _session.post(
         url, headers={"content-type": "application/json"}, data=json.dumps(payload)
     )
     response.raise_for_status()
-    result: dict[str, Any] = json.loads(json.loads(response.text))
+    return json.loads(json.loads(response.text))
+
+
+def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    result = _post_and_decode(url, payload)
+    assert isinstance(result, dict)
+    return result
+
+
+def autocomplete(field: str, prefix: str) -> list[str]:
+    payload = {
+        "isAutocompleteQuery": True,
+        "searchFieldQueryInfos": [
+            {
+                "queryField": field,
+                "queryType": "Start Match",
+                "filterValue": prefix,
+                "isAutoCompletePrimary": True,
+            }
+        ],
+    }
+    result = _post_and_decode(SEARCH_URL, payload)
+    assert isinstance(result, list)
     return result
 
 
